@@ -39,6 +39,7 @@ The suite saves tokens in three ways:
 - keeping the original instruction order and section structure as closely as practical
 - removing redundancy rather than introducing new policy sections
 - honoring explicit user instructions that disable caveman in the main thread or subagents
+- keeping a compressed skill-access section that preserves the original "load the skill first" behavior without explicit tool-name mapping
 
 The entry skill should stay structurally close to the original `using-superpowers` skill:
 
@@ -46,7 +47,8 @@ The entry skill should stay structurally close to the original `using-superpower
 - same hard-line stance on invoking skills before action
 - same basic section ordering unless a change is needed for correctness
 - no custom policy sections that materially expand scope beyond caveman defaults and compression
-- platform-specific tool-loading instructions are intentionally out of scope for this compressed derivative
+- keep the skill-access section, but compress it to generic runtime guidance
+- omit explicit per-runtime or tool-name mapping details from that section
 
 ### Replacement Skills
 
@@ -61,6 +63,8 @@ Each downstream process skill gets a `super-caveman-*` counterpart. These skills
 
 In the current design, downstream wrappers may reference the wrapped superpowers skill by name in the body. Descriptions should not mention replacement status or the wrapped skill name.
 
+When a `super-caveman` skill references or routes to another skill, it should route through the matching `super-caveman-*` variant. Base-skill references are allowed only when the text is describing source provenance rather than invocation.
+
 ## Workflow Rules
 
 `super-caveman` must preserve the hard lines of the superpowers approach:
@@ -69,6 +73,7 @@ In the current design, downstream wrappers may reference the wrapped superpowers
 - if a skill might apply, it must be invoked
 - process skills must be invoked before execution skills
 - process skills still determine how work is approached
+- cross-skill routing should stay inside the `super-caveman` suite
 - approval gates remain in place before implementation
 - full-document review remains the default where the original workflow requires it
 - verification remains mandatory before claiming success
@@ -131,7 +136,8 @@ Required content:
 - the original entry-skill workflow and priority rules, kept in the same general order
 - caveman-default guidance for the main thread
 - redundancy removed without changing the meaning of the original rules
-- platform-specific tool-loading details intentionally omitted
+- a compressed skill-access section that preserves generic skill-loading guidance
+- explicit per-runtime or tool-name mapping details omitted
 - no extra standalone policy sections that are not needed to express caveman defaults or compression
 
 ### Wrapper Skill Format
@@ -149,6 +155,7 @@ Required content:
     - forbids replacing, summarizing, or weakening the wrapped skill
     - applies caveman mode during the wrapped workflow for main thread and spawned subagents unless the user says otherwise
     - ends when the wrapped workflow ends
+- when another downstream skill is invoked, use the `super-caveman-*` variant
 
 The wrappers are routing surfaces for the new suite. For this phase, they are explicitly wrappers, not standalone replacements.
 
@@ -161,8 +168,9 @@ Migration happens one skill at a time.
 3. Keep downstream `super-caveman-*` skills as thin wrappers for now.
 4. Normalize wrapper descriptions so they preserve trigger parity while adding caveman bias.
 5. Normalize wrapper bodies around a shared delegate template.
-6. Rewrite each wrapper into a full replacement later without changing its public name.
-7. Remove dependency on original superpowers skill content as each replacement reaches parity.
+6. Route internally through `super-caveman-*` skills.
+7. Rewrite each wrapper into a full replacement later without changing its public name.
+8. Remove dependency on original superpowers skill content as each replacement reaches parity.
 
 This keeps the routing model stable while allowing incremental replacement work.
 
