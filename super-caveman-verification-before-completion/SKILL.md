@@ -9,4 +9,5 @@ description: Use when about to claim work is complete, fixed, or passing, before
 2. Do not replace, summarize, or weaken `verification-before-completion`.
 3. During verification-before-completion, use caveman mode for main-thread responses unless the user says otherwise.
 4. During verification-before-completion, every spawned subagent should also be told to use caveman mode unless the user says otherwise.
-5. When verification-before-completion ends, this wrapper ends too.
+5. For any additional skill this workflow invokes beyond rule 1, use the matching `super-caveman-*` variant.
+6. When verification-before-completion ends, this wrapper ends too.

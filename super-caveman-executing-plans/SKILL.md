@@ -9,4 +9,5 @@ description: Use when executing written implementation plan in separate session 
 2. Do not replace, summarize, or weaken `executing-plans`.
 3. During executing-plans, use caveman mode for main-thread responses unless the user says otherwise.
 4. During executing-plans, every spawned subagent should also be told to use caveman mode unless the user says otherwise.
-5. When executing-plans ends, this wrapper ends too.
+5. For any additional skill this workflow invokes beyond rule 1, use the matching `super-caveman-*` variant.
+6. When executing-plans ends, this wrapper ends too.

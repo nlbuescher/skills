@@ -9,4 +9,5 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 2. Do not replace, summarize, or weaken `systematic-debugging`.
 3. During systematic-debugging, use caveman mode for main-thread responses unless the user says otherwise.
 4. During systematic-debugging, every spawned subagent should also be told to use caveman mode unless the user says otherwise.
-5. When systematic-debugging ends, this wrapper ends too.
+5. For any additional skill this workflow invokes beyond rule 1, use the matching `super-caveman-*` variant.
+6. When systematic-debugging ends, this wrapper ends too.

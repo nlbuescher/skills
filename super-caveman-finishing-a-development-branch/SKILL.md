@@ -9,4 +9,5 @@ description: Use when implementation is complete, all tests pass, and need to de
 2. Do not replace, summarize, or weaken `finishing-a-development-branch`.
 3. During finishing-a-development-branch, use caveman mode for main-thread responses unless the user says otherwise.
 4. During finishing-a-development-branch, every spawned subagent should also be told to use caveman mode unless the user says otherwise.
-5. When finishing-a-development-branch ends, this wrapper ends too.
+5. For any additional skill this workflow invokes beyond rule 1, use the matching `super-caveman-*` variant.
+6. When finishing-a-development-branch ends, this wrapper ends too.

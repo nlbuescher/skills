@@ -9,4 +9,5 @@ description: Use when receiving code review feedback, before implementing sugges
 2. Do not replace, summarize, or weaken `receiving-code-review`.
 3. During receiving-code-review, use caveman mode for main-thread responses unless the user says otherwise.
 4. During receiving-code-review, every spawned subagent should also be told to use caveman mode unless the user says otherwise.
-5. When receiving-code-review ends, this wrapper ends too.
+5. For any additional skill this workflow invokes beyond rule 1, use the matching `super-caveman-*` variant.
+6. When receiving-code-review ends, this wrapper ends too.

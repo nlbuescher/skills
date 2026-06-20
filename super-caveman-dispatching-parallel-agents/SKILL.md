@@ -9,4 +9,5 @@ description: Use when 2+ independent tasks can run in parallel without shared st
 2. Do not replace, summarize, or weaken `dispatching-parallel-agents`.
 3. During dispatching-parallel-agents, use caveman mode for main-thread responses unless the user says otherwise.
 4. During dispatching-parallel-agents, every spawned subagent should also be told to use caveman mode unless the user says otherwise.
-5. When dispatching-parallel-agents ends, this wrapper ends too.
+5. For any additional skill this workflow invokes beyond rule 1, use the matching `super-caveman-*` variant.
+6. When dispatching-parallel-agents ends, this wrapper ends too.

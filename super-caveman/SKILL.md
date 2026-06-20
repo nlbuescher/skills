@@ -28,9 +28,9 @@ If user instructions conflict with a skill, follow user instructions.
 
 ## Accessing Skills
 
-Never read skill files manually with file tools. Use runtime's native skill-loading mechanism so activation happens correctly. If mechanism is unclear, check runtime docs.
+Load current skill instructions before acting.
 
-Skills describe actions, not one runtime's exact tool names. Translate those actions to local tools and conventions as needed.
+Use the runtime's normal skill-loading path for the current environment.
 
 ## Rule
 
@@ -44,7 +44,7 @@ Before any response, clarification, exploration, planning, or implementation:
 5. If skill has checklist, create one task per item.
 6. Follow skill exactly.
 
-If about to enter plan mode and have not already brainstormed, invoke `brainstorming` first.
+If about to enter plan mode and have not already brainstormed, invoke `super-caveman-brainstorming` first.
 
 ## Red Flags
 
@@ -63,7 +63,7 @@ These thoughts mean STOP and invoke skills first:
 ## Skill Priority
 
 Use process skills first. They decide how to work.
-- Examples: `brainstorming`, `systematic-debugging`
+- Examples: `super-caveman-brainstorming`, `super-caveman-systematic-debugging`
 
 Use implementation skills second. They guide execution.
 
