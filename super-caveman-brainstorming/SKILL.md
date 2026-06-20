@@ -22,10 +22,10 @@ You MUST create a task for each of these items and complete them in order:
 3. **Ask clarifying questions** — one at a time; learn purpose, constraints, success criteria.
 4. **Propose 2-3 approaches** — include trade-offs and your recommendation.
 5. **Present design** — scale sections to complexity and get user approval as you go.
-6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` by default (user can override), and commit it.
+6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` by default (user can override).
 7. **Spec self-review** — fix placeholders, contradictions, ambiguity, and scope drift inline.
 8. **User reviews written spec** — ask them to review the file before planning starts.
-9. **Transition to implementation** — invoke `super-caveman-writing-plans`.
+9. **Transition to implementation** — commit and invoke `super-caveman-writing-plans`.
 
 ## Process
 
@@ -34,10 +34,10 @@ You MUST create a task for each of these items and complete them in order:
 3. Ask one question per message. Prefer multiple choice when it genuinely helps.
 4. Present 2-3 approaches with a recommendation.
 5. Present the design in sections. Cover architecture, components, data flow, error handling, and testing. Ask whether each section looks right before advancing.
-6. Write the approved spec to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` by default (user can override), then commit it.
+6. Write the approved spec to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` by default (user can override).
 7. Self-review the written spec for placeholders, internal consistency, scope, and ambiguity. Fix issues inline.
 8. Ask the user to review the written spec. If they request changes, update it and repeat the review gate.
-9. After explicit approval of the written spec, invoke `super-caveman-writing-plans`. Do not switch to any other implementation skill from brainstorming.
+9. After explicit approval of the written spec, commit the changes and invoke `super-caveman-writing-plans`. Do not switch to any other implementation skill from brainstorming.
 
 ## Rules
 
@@ -75,6 +75,6 @@ If they accept, read `super-caveman-brainstorming/visual-companion.md` before pr
 
 After the spec self-review passes, ask:
 
-> "Spec written and committed to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
+> "Spec written to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
 
-Wait for approval. Only then invoke `super-caveman-writing-plans`.
+Wait for approval. Only then commit and invoke `super-caveman-writing-plans`.
