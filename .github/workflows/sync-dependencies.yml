@@ -19,20 +19,9 @@ jobs:
         with:
           source-repo-url: https://github.com/JuliusBrussee/caveman
           source-slug: JuliusBrussee/caveman
-          target-dir: JuliusBrussee
+          target-dir: skills/caveman
           use-tags: false
           mappings: |
             skills/*:.
             LICENSE:LICENSE
             agents:cavecrew/agents
-
-      - name: Sync superpowers
-        uses: ./.github/actions/sync-dependency
-        with:
-          source-repo-url: https://github.com/obra/superpowers
-          source-slug: obra/superpowers
-          target-dir: obra
-          use-tags: false
-          mappings: |
-            skills/*:.
-            LICENSE:LICENSE
