@@ -7,7 +7,7 @@ description: Use when starting feature work that needs isolation from current wo
 
 1. Invoke `using-git-worktrees` and follow it completely.
 2. Do not replace, summarize, or weaken `using-git-worktrees`.
-3. During using-git-worktrees, use caveman mode for main-thread responses unless the user says otherwise.
-4. During using-git-worktrees, every spawned subagent should also be told to use caveman mode unless the user says otherwise.
+3. During using-git-worktrees, invoke `caveman` skill for main-thread responses unless the user says otherwise.
+4. During using-git-worktrees, every spawned subagent should also be told to invoke `caveman` skill unless the user says otherwise.
 5. For any additional skill this workflow invokes beyond rule 1, use the matching `super-caveman-*` variant.
 6. When using-git-worktrees ends, this wrapper ends too.

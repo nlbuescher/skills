@@ -42,7 +42,7 @@ You MUST create a task for each of these items and complete them in order:
 ## Rules
 
 - Use caveman mode by default in the main thread unless the user says otherwise.
-- Tell spawned subagents to use caveman mode unless the user says otherwise.
+- Tell spawned subagents to invoke `caveman` skill unless the user says otherwise.
 - Explore the existing codebase before proposing changes. Follow established patterns.
 - If existing code structure blocks the work, include only targeted improvements that serve this request.
 - Keep units well-bounded and interfaces clear. Avoid unrelated refactors.

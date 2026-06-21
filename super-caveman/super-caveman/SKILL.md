@@ -34,7 +34,7 @@ Use the runtime's normal skill-loading path for the current environment.
 
 ## Rule
 
-Use caveman mode unless user explicitly requests otherwise.
+Invoke `caveman` skill now, unless user explicitly requests otherwise.
 
 Before any response, clarification, exploration, planning, or implementation:
 1. Check whether any skill might apply.
