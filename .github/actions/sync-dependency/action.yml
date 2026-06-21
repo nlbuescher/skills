@@ -1,0 +1,89 @@
+name: Sync dependency
+description: Clone one source repo, compare mapped files, and copy them into a target directory.
+inputs:
+  source-slug:
+    description: Slug to ID the source repository.
+    required: true
+  source-dir:
+    description: Relative path inside the cloned source repo that mapping sources are resolved from.
+    required: false
+    default: .
+  target-dir:
+    description: Relative path under $GITHUB_WORKSPACE where mapping targets are resolved.
+    required: true
+  mappings:
+    description: Newline-separated from:to mappings.
+    required: true
+  use-tags:
+    description: Use first-parent tag provenance instead of short HEAD SHA.
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: sync
+      shell: bash
+      env:
+        INPUT_SOURCE_SLUG: ${{ inputs.source-slug }}
+        INPUT_SOURCE_DIR: ${{ inputs.source-dir }}
+        INPUT_TARGET_DIR: ${{ inputs.target-dir }}
+        INPUT_MAPPINGS: ${{ inputs.mappings }}
+        INPUT_USE_TAGS: ${{ inputs.use-tags }}
+      run: |
+        # set up tmp dir
+        tmp_dir=$(mktemp -d)
+        trap 'rm -rf "$tmp_dir"' EXIT
+
+        # clone source repo
+        source_repo_url="https://github.com/$INPUT_SOURCE_SLUG"
+        source_repo_dir="$tmp_dir/source"
+
+        git clone "$source_repo_url" "$source_repo_dir"
+        source_dir="$source_repo_dir/$INPUT_SOURCE_DIR"
+        echo "DONE"
+
+        # look for tags
+        ref=$(git -C "$source_repo_dir" rev-parse --short HEAD)
+        [[ "$INPUT_USE_TAGS" == "true" ]] && {
+          ref=$(git -C "$source_repo_dir" describe --tags --first-parent --abbrev=0 2>/dev/null || true)
+          [[ -n "$ref" ]] && git -C "$source_repo_dir" checkout "$ref"
+        }
+
+        # copy mappings
+        while IFS= read -r mapping; do
+          [[ -z "$mapping" ]] && continue
+
+          source="${mapping%%:*}"
+          target="${mapping#*:}"
+
+          mapfile -t source_files < <(compgen -G "$source_dir/$source" )
+
+          ((${#source_files[@]})) || { echo "No files found for source pattern '$source'" >&2; exit 1; }
+
+          mkdir -p "$INPUT_TARGET_DIR/$target"
+          cp -r -- "${source_files[@]}" "$INPUT_TARGET_DIR/$target"
+          echo "Copied ${#source_files[@]} file(s) from '$source' to '$target'"
+        done <<< "$INPUT_MAPPINGS"
+
+        # commit changes if any
+        git add "$INPUT_TARGET_DIR"
+
+        git diff --cached --quiet "$INPUT_TARGET_DIR" && {
+          echo "No changes to commit."
+          exit 0
+        }
+
+        if [[ -z $(git diff --cached --name-only --diff-filter=MDCRTUXB "$INPUT_TARGET_DIR") ]]; then
+          message="added $INPUT_SOURCE_SLUG ($ref)"
+        else
+          message="updated $INPUT_SOURCE_SLUG to $ref"
+        fi
+
+        echo "$message"
+
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        git commit -m "ci: $message" || echo "No changes to commit."
+
+        git push

@@ -1,0 +1,28 @@
+name: Sync dependencies
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */12 * * *"
+
+jobs:
+  sync-dependencies:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v7
+
+      - name: Sync caveman
+        id: caveman
+        uses: ./.github/actions/sync-dependency
+        with:
+          source-repo-url: https://github.com/JuliusBrussee/caveman
+          source-slug: JuliusBrussee/caveman
+          target-dir: JuliusBrussee
+          use-tags: false
+          mappings: |
+            skills/*:.
+            LICENSE:LICENSE
+            agents:cavecrew/agents
