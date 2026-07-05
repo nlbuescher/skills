@@ -146,9 +146,10 @@ async function findExistingUpstreams(rootDir) {
   for (const relativeFile of globSync("skills/**/.upstream.yml", { cwd: rootDir })) {
     const file = path.join(rootDir, relativeFile);
     const data = parseFlatFile(await readFile(file, "utf8"));
-    if (data.source) {
+    const source = data.source || sourceFromRepository(data.repository);
+    if (source) {
       upstreams.push({
-        source: data.source,
+        source,
         targetDir: path.dirname(file)
       });
     }
@@ -166,6 +167,15 @@ function parseFlatFile(raw) {
     data[line.slice(0, separator).trim()] = line.slice(separator + 1).trim();
   }
   return data;
+}
+
+function sourceFromRepository(repository) {
+  if (typeof repository !== "string") {
+    return "";
+  }
+
+  const match = /^https:\/\/github\.com\/([^/]+\/[^/\s]+?)(?:\.git)?$/.exec(repository.trim());
+  return match ? match[1] : "";
 }
 
 function formatUpstream(data) {

@@ -69,3 +69,24 @@ test("syncDependencies deletes target before copy and writes upstream source", a
     "helper\n"
   );
 });
+
+test("syncDependencies removes legacy upstream tracked only by repository url", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "sync-legacy-root-"));
+  await mkdir(path.join(root, "skills", "old"), { recursive: true });
+  await writeFile(path.join(root, "skills", "old", "old.txt"), "old\n");
+  await writeFile(
+    path.join(root, "skills", "old", ".upstream.yml"),
+    "repository: https://github.com/owner/old\nref: abc1234\ncommit: abc1234\n"
+  );
+  await writeFile(path.join(root, "skills.json"), JSON.stringify({ dependencies: [] }));
+  git(["init"], { cwd: root });
+  git(["config", "user.name", "Test"], { cwd: root });
+  git(["config", "user.email", "test@example.com"], { cwd: root });
+  git(["add", "--all"], { cwd: root });
+  git(["commit", "-m", "baseline"], { cwd: root });
+
+  const result = await syncDependencies({ rootDir: root, push: false, commit: false });
+
+  await assert.rejects(readFile(path.join(root, "skills", "old", "old.txt"), "utf8"), /ENOENT/);
+  assert.deepEqual(result.changes, [{ action: "remove", source: "owner/old" }]);
+});
