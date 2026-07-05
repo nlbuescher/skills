@@ -25,3 +25,14 @@ jobs:
             skills/*:.
             LICENSE:LICENSE
             agents:cavecrew/agents
+
+      - name: Sync superpowers
+        uses: ./.github/actions/sync-dependency
+        with:
+          source-repo-url: https://github.com/obra/superpowers
+          source-slug: obra/superpowers
+          target-dir: skills/superpowers
+          use-tags: false
+          mappings: |
+            skills/*:.
+            LICENSE:LICENSE
