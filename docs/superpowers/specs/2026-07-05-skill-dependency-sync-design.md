@@ -58,6 +58,8 @@ commit: deadbee
 
 The workflow uses JavaScript scripts for core logic. Shell remains limited to GitHub Actions step wiring if needed.
 
+Both sync and marketplace scripts use a shared JavaScript git helper instead of calling `child_process` directly. The helper wraps `git` invocations with argument arrays, captures stdout/stderr consistently, and exposes small named functions for common operations such as `gitAddAll`, `gitDiffCachedQuiet`, `gitCommit`, `gitPush`, `gitStatusShort`, and path-scoped diff checks.
+
 Flow:
 
 1. Read `skills.yml`.
@@ -170,6 +172,7 @@ The standalone marketplace workflow skips pushes from `github-actions[bot]` so s
 
 Tests cover:
 
+- shared git helper functions wrap `child_process` calls and are used by sync and marketplace scripts,
 - parsing `skills.yml` with colon-separated mappings,
 - sync deletion before copy removes upstream-deleted files,
 - `.upstream.yml` includes `source`,
