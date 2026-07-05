@@ -1,0 +1,15 @@
+dependencies:
+  - source: JuliusBrussee/caveman
+    target: skills/caveman
+    use-tags: false
+    mappings:
+      - skills/*:.
+      - LICENSE:LICENSE
+      - agents:cavecrew/agents
+
+  - source: obra/superpowers
+    target: skills/superpowers
+    use-tags: false
+    mappings:
+      - skills/*:.
+      - LICENSE:LICENSE
