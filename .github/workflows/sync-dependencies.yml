@@ -6,6 +6,7 @@ on:
     - cron: "0 */12 * * *"
   push:
     paths:
+      - .github/actions/sync-dependency/**
       - .github/workflows/sync-dependencies.yml
 
 jobs:
