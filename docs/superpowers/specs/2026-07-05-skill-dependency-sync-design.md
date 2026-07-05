@@ -131,7 +131,7 @@ Example output shape:
 ```json
 {
   "metadata": {
-    "pluginRoot": "."
+    "pluginRoot": "./"
   },
   "plugins": [
     {

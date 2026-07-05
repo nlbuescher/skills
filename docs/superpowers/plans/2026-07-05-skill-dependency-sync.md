@@ -368,7 +368,7 @@ test("buildMarketplace groups category folders and omits flat skills", async () 
   const marketplace = await buildMarketplace(root);
 
   assert.deepEqual(marketplace, {
-    metadata: { pluginRoot: "." },
+    metadata: { pluginRoot: "./" },
     plugins: [
       {
         name: "productivity",
@@ -426,7 +426,7 @@ export async function buildMarketplace(rootDir = process.cwd()) {
     }
   }
   return {
-    metadata: { pluginRoot: "." },
+    metadata: { pluginRoot: "./" },
     plugins: plugins.sort((a, b) => a.name.localeCompare(b.name))
   };
 }
