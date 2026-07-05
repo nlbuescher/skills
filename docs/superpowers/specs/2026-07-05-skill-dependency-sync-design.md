@@ -2,27 +2,33 @@
 
 ## Goal
 
-Replace the per-dependency workflow configuration with one repository-level `skills.yml` file. The sync workflow reads that file, syncs all declared upstream skill dependencies, regenerates the Claude plugin marketplace, and commits any resulting repository changes in one grouped commit.
+Replace the per-dependency workflow configuration with one repository-level `skills.json` file. The sync workflow reads that file, syncs all declared upstream skill dependencies, regenerates the Claude plugin marketplace, and commits any resulting repository changes in one grouped commit.
 
-The generated marketplace supports manually authored skills in category folders. The `skills.yml` file is input only and must not be modified by sync or marketplace logic.
+The generated marketplace supports manually authored skills in category folders. The `skills.json` file is input only and must not be modified by sync or marketplace logic.
 
 ## Source Files
 
-### `skills.yml`
+### `skills.json`
 
-`skills.yml` lives at the repository root and declares only external dependencies. It is not a complete inventory of all skills in the repo.
+`skills.json` lives at the repository root and declares only external dependencies. It is not a complete inventory of all skills in the repo.
 
 Example:
 
-```yaml
-dependencies:
-  - source: JuliusBrussee/caveman
-    target: skills/caveman
-    use-tags: false
-    mappings:
-      - skills/*:.
-      - LICENSE:LICENSE
-      - agents:cavecrew/agents
+```json
+{
+  "dependencies": [
+    {
+      "source": "JuliusBrussee/caveman",
+      "target": "skills/caveman",
+      "use-tags": false,
+      "mappings": [
+        "skills/*:.",
+        "LICENSE:LICENSE",
+        "agents:cavecrew/agents"
+      ]
+    }
+  ]
+}
 ```
 
 Fields:
@@ -30,7 +36,7 @@ Fields:
 - `source`: GitHub `owner/repo` slug. The sync script clones `https://github.com/<source>`.
 - `target`: local directory to replace with mapped upstream files.
 - `use-tags`: when true, sync the latest first-parent tag instead of the source HEAD.
-- `mappings`: newline/list of colon-separated `source:target` pairs, preserving the current arbitrary file mapping behavior.
+- `mappings`: list of colon-separated `source:target` strings, preserving the current arbitrary file mapping behavior.
 
 ### `.upstream.yml`
 
@@ -62,10 +68,10 @@ Both sync and marketplace scripts use a shared JavaScript git helper instead of 
 
 Flow:
 
-1. Read `skills.yml`.
+1. Read `skills.json`.
 2. Scan `skills/*/.upstream.yml` for dependency-owned directories.
-3. Remove dependency-owned directories whose `source` no longer appears in `skills.yml`.
-4. For every dependency in `skills.yml`:
+3. Remove dependency-owned directories whose `source` no longer appears in `skills.json`.
+4. For every dependency in `skills.json`:
    - clone its source repository,
    - resolve the synced ref,
    - record whether the target existed before sync,
@@ -77,7 +83,7 @@ Flow:
 7. If there is no staged diff, exit without committing.
 8. Otherwise commit and push.
 
-The sync script never writes `skills.yml`.
+The sync script never writes `skills.json`.
 
 ## Change Classification
 
@@ -101,7 +107,7 @@ Rules:
 
 - `add`: target did not exist before sync and target files changed.
 - `update`: target existed before sync and target files changed.
-- `remove`: existing `.upstream.yml` source is no longer declared in `skills.yml`.
+- `remove`: existing `.upstream.yml` source is no longer declared in `skills.json`.
 - unchanged dependencies are omitted.
 - add/update entries include the resolved ref.
 - remove entries do not include a ref.
@@ -153,7 +159,7 @@ A separate marketplace workflow handles manual custom skill changes.
 Trigger paths:
 
 - `skills/**`
-- `skills.yml`
+- `skills.json`
 - marketplace action/script files
 - marketplace workflow file
 
@@ -173,7 +179,7 @@ The standalone marketplace workflow skips pushes from `github-actions[bot]` so s
 Tests cover:
 
 - shared git helper functions wrap `child_process` calls and are used by sync and marketplace scripts,
-- parsing `skills.yml` with colon-separated mappings,
+- parsing `skills.json` with colon-separated mappings,
 - sync deletion before copy removes upstream-deleted files,
 - `.upstream.yml` includes `source`,
 - removed dependencies are detected from `.upstream.yml`,

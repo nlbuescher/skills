@@ -2,20 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build JS-based dependency sync and marketplace generation driven by root `skills.yml`.
+**Goal:** Build JS-based dependency sync and marketplace generation driven by root `skills.json`.
 
 **Architecture:** Add small focused Node ESM modules under `.github/scripts/lib/`, with CLI entrypoints for sync and marketplace update. Shared git helpers wrap `child_process` once, while tests use Node's built-in `node:test` runner and temporary fixture repos.
 
-**Tech Stack:** Node.js ESM, `node:test`, GitHub Actions composite actions, `act`, Git CLI, YAML parsed by `js-yaml`.
+**Tech Stack:** Node.js ESM, `node:test`, GitHub Actions composite actions, `act`, Git CLI, `JSON.parse` for `skills.json`, dependency-free flat YAML formatting/parsing for `.upstream.yml`.
 
 ## Global Constraints
 
-- `skills.yml` is input only and must never be written by sync or marketplace logic.
-- `skills.yml` declares only external dependencies, not all repo skills.
+- `skills.json` is input only and must never be written by sync or marketplace logic.
+- `skills.json` declares only external dependencies, not all repo skills.
 - `mappings` stay colon-separated strings such as `skills/*:.`.
 - Sync deletes each dependency target before copying mapped files.
 - `.upstream.yml` includes `source`, `repository`, `ref`, and `commit`.
-- Removed dependencies are detected from existing `skills/*/.upstream.yml` whose `source` is absent from `skills.yml`.
+- Removed dependencies are detected from existing `skills/*/.upstream.yml` whose `source` is absent from `skills.json`.
 - Marketplace file `.claude-plugin/marketplace.json` is fully regenerated; no manual entries are preserved.
 - Marketplace plugin names come only from immediate category folders under `skills/`.
 - Flat skills such as `skills/grill-me/SKILL.md` are omitted from marketplace entries.
@@ -27,10 +27,9 @@
 
 ## File Structure
 
-- Create `package.json`: test script and `js-yaml` dependency.
-- Create `skills.yml`: root dependency manifest replacing workflow hard-coded dependencies.
+- Create `skills.json`: root dependency manifest replacing workflow hard-coded dependencies.
 - Create `.github/scripts/lib/git.mjs`: reusable git wrapper used by sync and marketplace scripts.
-- Create `.github/scripts/lib/skills-manifest.mjs`: parse and validate `skills.yml`.
+- Create `.github/scripts/lib/skills-manifest.mjs`: parse and validate `skills.json`.
 - Create `.github/scripts/lib/marketplace.mjs`: scan skills tree and build/write marketplace JSON.
 - Create `.github/scripts/lib/sync-dependencies.mjs`: sync engine, removal detection, change classification, commit message building.
 - Create `.github/scripts/update-marketplace.mjs`: marketplace-only CLI.
@@ -39,22 +38,20 @@
 - Modify `.github/actions/sync-dependency/action.yml`: replace per-dependency inputs with one sync CLI call.
 - Delete `.github/actions/sync-dependency/sync-dependency.sh`: bash core logic removed.
 - Add `.github/actions/update-marketplace/action.yml`: marketplace-only composite action.
-- Modify `.github/workflows/sync-dependencies.yml`: call unified sync action and trigger on `skills.yml`.
+- Modify `.github/workflows/sync-dependencies.yml`: call unified sync action and trigger on `skills.json`.
 - Add `.github/workflows/update-marketplace.yml`: update marketplace for manual skill/category changes.
 
 ## Task 1: Test Harness, Manifest Parser, Git Helper
 
 **Files:**
-- Create: `package.json`
-- Create: `package-lock.json`
-- Create: `skills.yml`
+- Create: `skills.json`
 - Create: `.github/scripts/lib/git.mjs`
 - Create: `.github/scripts/lib/skills-manifest.mjs`
 - Test: `.github/scripts/test/skills-manifest.test.mjs`
 - Test: `.github/scripts/test/git.test.mjs`
 
 **Interfaces:**
-- Produces: `readSkillsManifest(filePath = "skills.yml"): Promise<{ dependencies: Dependency[] }>`
+- Produces: `readSkillsManifest(filePath = "skills.json"): Promise<{ dependencies: Dependency[] }>`
 - Produces: `parseMapping(value: string): { source: string, target: string }`
 - Produces: `git(args: string[], options?: { cwd?: string, allowFailure?: boolean }): GitResult`
 - Produces: `gitOutput(args: string[], options?: { cwd?: string }): string`
@@ -65,21 +62,7 @@
 - Produces: `gitStatusShort(pathspec?: string, cwd?: string): string`
 - Produces: `gitHasPathChanges(pathspec: string, cwd?: string): boolean`
 
-- [ ] **Step 1: Write package and failing manifest tests**
-
-Create `package.json`:
-
-```json
-{
-  "type": "module",
-  "scripts": {
-    "test": "node --test .github/scripts/test/*.test.mjs"
-  },
-  "dependencies": {
-    "js-yaml": "^4.1.0"
-  }
-}
-```
+- [ ] **Step 1: Write failing manifest tests**
 
 Create `.github/scripts/test/skills-manifest.test.mjs`:
 
@@ -99,19 +82,21 @@ test("parseMapping preserves colon-separated mapping strings", () => {
   });
 });
 
-test("readSkillsManifest parses dependencies from skills.yml", async () => {
+test("readSkillsManifest parses dependencies from skills.json", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "skills-manifest-"));
-  const file = path.join(dir, "skills.yml");
+  const file = path.join(dir, "skills.json");
   await writeFile(
     file,
-    `dependencies:
-  - source: JuliusBrussee/caveman
-    target: skills/caveman
-    use-tags: false
-    mappings:
-      - skills/*:.
-      - LICENSE:LICENSE
-`
+    JSON.stringify({
+      dependencies: [
+        {
+          source: "JuliusBrussee/caveman",
+          target: "skills/caveman",
+          "use-tags": false,
+          mappings: ["skills/*:.", "LICENSE:LICENSE"]
+        }
+      ]
+    })
   );
 
   const manifest = await readSkillsManifest(file);
@@ -135,7 +120,7 @@ test("readSkillsManifest parses dependencies from skills.yml", async () => {
 
 - [ ] **Step 2: Run manifest tests to verify failure**
 
-Run: `npm test -- .github/scripts/test/skills-manifest.test.mjs`
+Run: `node --test .github/scripts/test/skills-manifest.test.mjs`
 
 Expected: FAIL with module not found for `../lib/skills-manifest.mjs`.
 
@@ -145,8 +130,6 @@ Create `.github/scripts/lib/skills-manifest.mjs`:
 
 ```js
 import { readFile } from "node:fs/promises";
-import yaml from "js-yaml";
-
 export function parseMapping(value) {
   if (typeof value !== "string" || !value.includes(":")) {
     throw new Error(`Invalid mapping: ${value}`);
@@ -158,9 +141,9 @@ export function parseMapping(value) {
   };
 }
 
-export async function readSkillsManifest(filePath = "skills.yml") {
+export async function readSkillsManifest(filePath = "skills.json") {
   const raw = await readFile(filePath, "utf8");
-  const data = yaml.load(raw) ?? {};
+  const data = JSON.parse(raw);
   const dependencies = (data.dependencies ?? []).map((dependency) => {
     const source = requiredString(dependency.source, "source");
     return {
@@ -184,14 +167,9 @@ function requiredString(value, field) {
 
 - [ ] **Step 4: Run manifest tests to verify pass**
 
-Run:
+Run: `node --test .github/scripts/test/skills-manifest.test.mjs`
 
-```bash
-npm install
-npm test -- .github/scripts/test/skills-manifest.test.mjs
-```
-
-Expected: `npm install` creates `package-lock.json`; test PASS.
+Expected: PASS.
 
 - [ ] **Step 5: Write failing git helper tests**
 
@@ -232,7 +210,7 @@ test("gitStatusShort reports untracked path-scoped changes", async () => {
 
 - [ ] **Step 6: Run git helper tests to verify failure**
 
-Run: `npm test -- .github/scripts/test/git.test.mjs`
+Run: `node --test .github/scripts/test/git.test.mjs`
 
 Expected: FAIL with module not found for `../lib/git.mjs`.
 
@@ -293,30 +271,38 @@ export function gitHasPathChanges(pathspec, cwd = process.cwd()) {
 
 - [ ] **Step 8: Run Task 1 tests to verify pass**
 
-Run: `npm test -- .github/scripts/test/skills-manifest.test.mjs .github/scripts/test/git.test.mjs`
+Run: `node --test .github/scripts/test/skills-manifest.test.mjs .github/scripts/test/git.test.mjs`
 
 Expected: PASS.
 
-- [ ] **Step 9: Add root `skills.yml`**
+- [ ] **Step 9: Add root `skills.json`**
 
-Create `skills.yml`:
+Create `skills.json`:
 
-```yaml
-dependencies:
-  - source: JuliusBrussee/caveman
-    target: skills/caveman
-    use-tags: false
-    mappings:
-      - skills/*:.
-      - LICENSE:LICENSE
-      - agents:cavecrew/agents
-
-  - source: obra/superpowers
-    target: skills/superpowers
-    use-tags: false
-    mappings:
-      - skills/*:.
-      - LICENSE:LICENSE
+```json
+{
+  "dependencies": [
+    {
+      "source": "JuliusBrussee/caveman",
+      "target": "skills/caveman",
+      "use-tags": false,
+      "mappings": [
+        "skills/*:.",
+        "LICENSE:LICENSE",
+        "agents:cavecrew/agents"
+      ]
+    },
+    {
+      "source": "obra/superpowers",
+      "target": "skills/superpowers",
+      "use-tags": false,
+      "mappings": [
+        "skills/*:.",
+        "LICENSE:LICENSE"
+      ]
+    }
+  ]
+}
 ```
 
 - [ ] **Step 10: Commit Task 1**
@@ -324,7 +310,7 @@ dependencies:
 Run:
 
 ```bash
-git add package.json package-lock.json skills.yml .github/scripts/lib/git.mjs .github/scripts/lib/skills-manifest.mjs .github/scripts/test/skills-manifest.test.mjs .github/scripts/test/git.test.mjs
+git add skills.json .github/scripts/lib/git.mjs .github/scripts/lib/skills-manifest.mjs .github/scripts/test/skills-manifest.test.mjs .github/scripts/test/git.test.mjs
 git commit -m "feat: add skill dependency manifest parser"
 ```
 
@@ -393,7 +379,7 @@ test("writeMarketplaceIfChanged writes only when normalized output changes", asy
 
 - [ ] **Step 2: Run marketplace tests to verify failure**
 
-Run: `npm test -- .github/scripts/test/marketplace.test.mjs`
+Run: `node --test .github/scripts/test/marketplace.test.mjs`
 
 Expected: FAIL with module not found for `../lib/marketplace.mjs`.
 
@@ -499,7 +485,7 @@ gitPush();
 
 - [ ] **Step 5: Run marketplace tests to verify pass**
 
-Run: `npm test -- .github/scripts/test/marketplace.test.mjs`
+Run: `node --test .github/scripts/test/marketplace.test.mjs`
 
 Expected: PASS.
 
@@ -568,15 +554,17 @@ test("syncDependencies deletes target before copy and writes upstream source", a
   await mkdir(path.join(root, "skills", "demo", "stale"), { recursive: true });
   await writeFile(path.join(root, "skills", "demo", "stale", "old.txt"), "old\n");
   await writeFile(
-    path.join(root, "skills.yml"),
-    `dependencies:
-  - source: local/demo
-    repository: ${source}
-    target: skills/demo
-    mappings:
-      - skills/*:.
-      - LICENSE:LICENSE
-`
+    path.join(root, "skills.json"),
+    JSON.stringify({
+      dependencies: [
+        {
+          source: "local/demo",
+          repository: source,
+          target: "skills/demo",
+          mappings: ["skills/*:.", "LICENSE:LICENSE"]
+        }
+      ]
+    })
   );
   git(["init"], { cwd: root });
   git(["config", "user.name", "Test"], { cwd: root });
@@ -596,7 +584,7 @@ test("syncDependencies deletes target before copy and writes upstream source", a
 
 - [ ] **Step 2: Run sync tests to verify failure**
 
-Run: `npm test -- .github/scripts/test/sync-dependencies.test.mjs`
+Run: `node --test .github/scripts/test/sync-dependencies.test.mjs`
 
 Expected: FAIL with module not found for `../lib/sync-dependencies.mjs`.
 
@@ -609,14 +597,13 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { globSync } from "node:fs";
-import yaml from "js-yaml";
 import { git, gitAddAll, gitCommit, gitDiffCachedQuiet, gitHasPathChanges, gitOutput, gitPush } from "./git.mjs";
 import { readSkillsManifest } from "./skills-manifest.mjs";
 import { writeMarketplaceIfChanged } from "./marketplace.mjs";
 
 export async function syncDependencies(options = {}) {
   const rootDir = options.rootDir ?? process.cwd();
-  const manifest = await readSkillsManifest(path.join(rootDir, "skills.yml"));
+  const manifest = await readSkillsManifest(path.join(rootDir, "skills.json"));
   const declaredSources = new Set(manifest.dependencies.map((dependency) => dependency.source));
   const changes = [];
 
@@ -642,7 +629,7 @@ export async function syncDependencies(options = {}) {
     }
     await writeFile(
       path.join(targetDir, ".upstream.yml"),
-      yaml.dump({
+      formatUpstreamYaml({
         source: dependency.source,
         repository: dependency.repository,
         ref: ref || commit,
@@ -712,10 +699,30 @@ async function findExistingUpstreams(rootDir) {
   const matches = globSync(path.join(rootDir, "skills", "*", ".upstream.yml"));
   const upstreams = [];
   for (const file of matches) {
-    const data = yaml.load(await readFile(file, "utf8"));
+    const data = parseFlatYaml(await readFile(file, "utf8"));
     if (data?.source) upstreams.push({ source: data.source, targetDir: path.dirname(file) });
   }
   return upstreams;
+}
+
+function parseFlatYaml(raw) {
+  const data = {};
+  for (const line of raw.split(/\r?\n/)) {
+    const separator = line.indexOf(":");
+    if (separator === -1) continue;
+    data[line.slice(0, separator).trim()] = line.slice(separator + 1).trim();
+  }
+  return data;
+}
+
+function formatUpstreamYaml(data) {
+  return [
+    `source: ${data.source}`,
+    `repository: ${data.repository}`,
+    `ref: ${data.ref}`,
+    `commit: ${data.commit}`,
+    ""
+  ].join("\n");
 }
 
 async function exists(file) {
@@ -743,13 +750,13 @@ await syncDependencies();
 
 - [ ] **Step 5: Run sync tests and fix API mismatches**
 
-Run: `npm test -- .github/scripts/test/sync-dependencies.test.mjs`
+Run: `node --test .github/scripts/test/sync-dependencies.test.mjs`
 
 Expected: PASS. If `repository` override is not yet accepted by `readSkillsManifest`, update that parser so local fixture tests can clone local repos while production still defaults to `https://github.com/<source>`.
 
 - [ ] **Step 6: Run full test suite**
 
-Run: `npm test`
+Run: `node --test .github/scripts/test/*.test.mjs`
 
 Expected: PASS.
 
@@ -781,13 +788,10 @@ Modify `.github/actions/sync-dependency/action.yml`:
 
 ```yaml
 name: Sync dependencies
-description: Sync all skill dependencies declared in skills.yml and regenerate marketplace metadata.
+description: Sync all skill dependencies declared in skills.json and regenerate marketplace metadata.
 runs:
   using: composite
   steps:
-    - name: Install script dependencies
-      shell: bash
-      run: npm install
     - name: Sync dependencies
       shell: bash
       run: node .github/scripts/sync-dependencies.mjs
@@ -805,9 +809,6 @@ description: Regenerate .claude-plugin/marketplace.json from skills folders.
 runs:
   using: composite
   steps:
-    - name: Install script dependencies
-      shell: bash
-      run: npm install
     - name: Update marketplace
       shell: bash
       run: node .github/scripts/update-marketplace.mjs
@@ -826,9 +827,7 @@ on:
     - cron: "0 */12 * * *"
   push:
     paths:
-      - skills.yml
-      - package.json
-      - package-lock.json
+      - skills.json
       - .github/actions/sync-dependency/**
       - .github/scripts/**
       - .github/workflows/sync-dependencies.yml
@@ -858,9 +857,7 @@ on:
   push:
     paths:
       - skills/**
-      - skills.yml
-      - package.json
-      - package-lock.json
+      - skills.json
       - .github/actions/update-marketplace/**
       - .github/scripts/**
       - .github/workflows/update-marketplace.yml
@@ -881,7 +878,7 @@ jobs:
 
 - [ ] **Step 5: Run full tests**
 
-Run: `npm test`
+Run: `node --test .github/scripts/test/*.test.mjs`
 
 Expected: PASS.
 
@@ -911,7 +908,7 @@ Expected:
 
 - `.claude-plugin/marketplace.json` exists and has plugin entries for category folders.
 - `skills/caveman/.upstream.yml` includes `source: JuliusBrussee/caveman`.
-- `skills.yml` is unchanged by scripts.
+- `skills.json` is unchanged by scripts.
 
 - [ ] **Step 9: Commit Task 4**
 
@@ -926,7 +923,7 @@ git commit -m "ci: sync skill dependencies from manifest"
 
 Spec coverage:
 
-- `skills.yml` dependency-only YAML: Task 1.
+- `skills.json` dependency-only JSON: Task 1.
 - colon-separated mappings: Task 1 parser tests and Task 3 sync use.
 - JS scripts instead of bash core logic: Tasks 1-4.
 - reusable git helper: Task 1 and consumed by Tasks 2-3.
