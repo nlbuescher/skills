@@ -182,3 +182,5 @@ Tests cover:
 - flat `skills/<skill>/SKILL.md` is omitted from marketplace,
 - marketplace output is stable,
 - marketplace updater no-ops when generated output matches existing file.
+
+Workflow verification uses `act` for local GitHub Actions execution. Runs are expected to fail at `git push`; verification passes when all sync and marketplace logic completes correctly before that push failure.
