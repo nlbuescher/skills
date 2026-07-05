@@ -20,14 +20,14 @@ export async function buildMarketplace(rootDir = process.cwd()) {
       plugins.push({
         name: category,
         source: `./skills/${category}`,
-        skills: skills.sort()
+        skills: skills.sort(compareCodePointStrings)
       });
     }
   }
 
   return {
     metadata: { pluginRoot: "./" },
-    plugins: plugins.sort((left, right) => left.name.localeCompare(right.name))
+    plugins: plugins.sort((left, right) => compareCodePointStrings(left.name, right.name))
   };
 }
 
@@ -52,13 +52,21 @@ async function safeDirNames(dir) {
     return entries
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
-      .sort();
+      .sort(compareCodePointStrings);
   } catch (error) {
     if (error.code === "ENOENT") {
       return [];
     }
     throw error;
   }
+}
+
+export function compareCodePointStrings(left, right) {
+  if (left === right) {
+    return 0;
+  }
+
+  return left < right ? -1 : 1;
 }
 
 async function exists(file) {

@@ -4,7 +4,11 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { buildMarketplace, writeMarketplaceIfChanged } from "../lib/marketplace.mjs";
+import {
+  buildMarketplace,
+  compareCodePointStrings,
+  writeMarketplaceIfChanged
+} from "../lib/marketplace.mjs";
 
 async function skill(root, relativePath, name) {
   const dir = path.join(root, relativePath);
@@ -30,6 +34,13 @@ test("buildMarketplace groups category folders and omits flat skills", async () 
       }
     ]
   });
+});
+
+test("compareCodePointStrings uses plain code point ordering", () => {
+  assert.equal(compareCodePointStrings("alpha", "alpha"), 0);
+  assert.equal(compareCodePointStrings("alpha", "beta"), -1);
+  assert.equal(compareCodePointStrings("beta", "alpha"), 1);
+  assert.equal(compareCodePointStrings("z", "ä"), -1);
 });
 
 test("writeMarketplaceIfChanged writes only when normalized output changes", async () => {
