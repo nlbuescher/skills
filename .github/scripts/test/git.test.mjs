@@ -21,6 +21,11 @@ test("gitDiffCachedQuiet returns true in empty repository", async () => {
   assert.equal(gitDiffCachedQuiet(dir), true);
 });
 
+test("gitDiffCachedQuiet throws on unexpected failure", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "git-helper-bad-"));
+  assert.throws(() => gitDiffCachedQuiet(dir), /git diff --cached --quiet failed/);
+});
+
 test("gitStatusShort reports untracked path-scoped changes", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "git-helper-status-"));
   git(["init"], { cwd: dir });

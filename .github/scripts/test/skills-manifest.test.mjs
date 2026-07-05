@@ -53,3 +53,25 @@ test("readSkillsManifest parses dependencies from skills.json", async () => {
     process.chdir(cwd);
   }
 });
+
+test("readSkillsManifest throws when dependencies missing", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "skills-manifest-missing-"));
+  await writeFile(path.join(dir, "skills.json"), JSON.stringify({}));
+
+  await assert.rejects(readSkillsManifest(path.join(dir, "skills.json")), /dependencies must be an array/);
+});
+
+test("readSkillsManifest throws when dependency entry is not object", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "skills-manifest-entry-"));
+  await writeFile(
+    path.join(dir, "skills.json"),
+    JSON.stringify({
+      dependencies: ["not-an-object"]
+    })
+  );
+
+  await assert.rejects(
+    readSkillsManifest(path.join(dir, "skills.json")),
+    /dependency entry at index 0 must be an object/
+  );
+});

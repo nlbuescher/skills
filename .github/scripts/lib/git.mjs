@@ -29,7 +29,10 @@ export function gitAddAll(cwd = process.cwd()) {
 }
 
 export function gitDiffCachedQuiet(cwd = process.cwd()) {
-  return git(["diff", "--cached", "--quiet"], { cwd, allowFailure: true }).status === 0;
+  const result = git(["diff", "--cached", "--quiet"], { cwd, allowFailure: true });
+  if (result.status === 0) return true;
+  if (result.status === 1) return false;
+  throw new Error(`git diff --cached --quiet failed\n${result.stderr}`);
 }
 
 export function gitCommit(message, cwd = process.cwd()) {
