@@ -61,6 +61,16 @@ test("readSkillsManifest throws when dependencies missing", async () => {
   await assert.rejects(readSkillsManifest(path.join(dir, "skills.json")), /dependencies must be an array/);
 });
 
+test("readSkillsManifest throws when manifest root is null", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "skills-manifest-null-"));
+  await writeFile(path.join(dir, "skills.json"), "null");
+
+  await assert.rejects(
+    readSkillsManifest(path.join(dir, "skills.json")),
+    /skills manifest root must be an object/
+  );
+});
+
 test("readSkillsManifest throws when dependency entry is not object", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "skills-manifest-entry-"));
   await writeFile(

@@ -15,6 +15,9 @@ export function parseMapping(value) {
 export async function readSkillsManifest(filePath = "skills.json") {
   const raw = await readFile(filePath, "utf8");
   const data = JSON.parse(raw);
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    throw new Error("skills manifest root must be an object");
+  }
   if (!Object.hasOwn(data, "dependencies")) {
     throw new Error("skills manifest dependencies must be an array");
   }
