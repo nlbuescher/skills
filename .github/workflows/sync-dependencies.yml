@@ -6,7 +6,9 @@ on:
     - cron: "0 */12 * * *"
   push:
     paths:
+      - skills.json
       - .github/actions/sync-dependency/**
+      - .github/scripts/**
       - .github/workflows/sync-dependencies.yml
 
 jobs:
@@ -18,25 +20,5 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v7
 
-      - name: Sync caveman
+      - name: Sync dependencies
         uses: ./.github/actions/sync-dependency
-        with:
-          source-repo-url: https://github.com/JuliusBrussee/caveman
-          source-slug: JuliusBrussee/caveman
-          target-dir: skills/caveman
-          use-tags: false
-          mappings: |
-            skills/*:.
-            LICENSE:LICENSE
-            agents:cavecrew/agents
-
-      - name: Sync superpowers
-        uses: ./.github/actions/sync-dependency
-        with:
-          source-repo-url: https://github.com/obra/superpowers
-          source-slug: obra/superpowers
-          target-dir: skills/superpowers
-          use-tags: false
-          mappings: |
-            skills/*:.
-            LICENSE:LICENSE

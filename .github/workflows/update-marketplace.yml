@@ -1,0 +1,24 @@
+name: Update marketplace
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - skills/**
+      - skills.json
+      - .github/actions/update-marketplace/**
+      - .github/scripts/**
+      - .github/workflows/update-marketplace.yml
+
+jobs:
+  update-marketplace:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v7
+
+      - name: Update marketplace
+        uses: ./.github/actions/update-marketplace

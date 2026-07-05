@@ -1,32 +1,8 @@
-name: Sync dependency
-description: Clone one source repo, compare mapped files, and copy them into a target directory.
-inputs:
-  source-slug:
-    description: Slug to ID the source repository.
-    required: true
-  source-dir:
-    description: Relative path inside the cloned source repo that mapping sources are resolved from.
-    required: false
-    default: .
-  target-dir:
-    description: Relative path under $GITHUB_WORKSPACE where mapping targets are resolved.
-    required: true
-  mappings:
-    description: Newline-separated from:to mappings.
-    required: true
-  use-tags:
-    description: Use first-parent tag provenance instead of short HEAD SHA.
-    required: false
-    default: "false"
+name: Sync dependencies
+description: Sync all skill dependencies declared in skills.json and regenerate marketplace metadata.
 runs:
   using: composite
   steps:
-    - name: sync
+    - name: Sync dependencies
       shell: bash
-      env:
-        INPUT_SOURCE_SLUG: "${{ inputs.source-slug }}"
-        INPUT_SOURCE_DIR: "${{ inputs.source-dir }}"
-        INPUT_TARGET_DIR: "${{ inputs.target-dir }}"
-        INPUT_MAPPINGS: "${{ inputs.mappings }}"
-        INPUT_USE_TAGS: "${{ inputs.use-tags }}"
-      run: "${{ github.action_path }}/sync-dependency.sh"
+      run: node .github/scripts/sync-dependencies.mjs
