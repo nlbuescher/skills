@@ -13,35 +13,43 @@ test("parseMapping preserves colon-separated mapping strings", () => {
   });
 });
 
-test("readSkillsManifest parses dependencies from skills.yml", async () => {
+test("readSkillsManifest parses dependencies from skills.json", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "skills-manifest-"));
-  const file = path.join(dir, "skills.yml");
+  const file = path.join(dir, "skills.json");
   await writeFile(
     file,
-    `dependencies:
-  - source: JuliusBrussee/caveman
-    target: skills/caveman
-    use-tags: false
-    mappings:
-      - skills/*:.
-      - LICENSE:LICENSE
-`
+    JSON.stringify({
+      dependencies: [
+        {
+          source: "JuliusBrussee/caveman",
+          target: "skills/caveman",
+          "use-tags": false,
+          mappings: ["skills/*:.", "LICENSE:LICENSE"]
+        }
+      ]
+    })
   );
 
-  const manifest = await readSkillsManifest(file);
+  const cwd = process.cwd();
+  process.chdir(dir);
+  try {
+    const manifest = await readSkillsManifest();
 
-  assert.deepEqual(manifest, {
-    dependencies: [
-      {
-        source: "JuliusBrussee/caveman",
-        repository: "https://github.com/JuliusBrussee/caveman",
-        target: "skills/caveman",
-        useTags: false,
-        mappings: [
-          { source: "skills/*", target: "." },
-          { source: "LICENSE", target: "LICENSE" }
-        ]
-      }
-    ]
-  });
+    assert.deepEqual(manifest, {
+      dependencies: [
+        {
+          source: "JuliusBrussee/caveman",
+          repository: "https://github.com/JuliusBrussee/caveman",
+          target: "skills/caveman",
+          useTags: false,
+          mappings: [
+            { source: "skills/*", target: "." },
+            { source: "LICENSE", target: "LICENSE" }
+          ]
+        }
+      ]
+    });
+  } finally {
+    process.chdir(cwd);
+  }
 });

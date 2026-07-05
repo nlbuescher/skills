@@ -1,9 +1,0 @@
-{
-  "type": "module",
-  "scripts": {
-    "test": "node --test .github/scripts/test/*.test.mjs"
-  },
-  "dependencies": {
-    "js-yaml": "^4.1.0"
-  }
-}

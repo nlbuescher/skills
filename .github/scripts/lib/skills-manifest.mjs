@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import yaml from "js-yaml";
 
 export function parseMapping(value) {
   if (typeof value !== "string" || !value.includes(":")) {
@@ -13,9 +12,9 @@ export function parseMapping(value) {
   };
 }
 
-export async function readSkillsManifest(filePath = "skills.yml") {
+export async function readSkillsManifest(filePath = "skills.json") {
   const raw = await readFile(filePath, "utf8");
-  const data = yaml.load(raw) ?? {};
+  const data = JSON.parse(raw);
   const dependencies = (data.dependencies ?? []).map((dependency) => {
     const source = requiredString(dependency.source, "source");
     return {
