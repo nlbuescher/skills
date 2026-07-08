@@ -4,6 +4,7 @@ export function git(args, options = {}) {
   const result = spawnSync("git", args, {
     cwd: options.cwd,
     encoding: "utf8",
+    env: options.env ? { ...process.env, ...options.env } : process.env,
     stdio: ["ignore", "pipe", "pipe"]
   });
 
@@ -35,8 +36,17 @@ export function gitDiffCachedQuiet(cwd = process.cwd()) {
   throw new Error(`git diff --cached --quiet failed\n${result.stderr}`);
 }
 
-export function gitCommit(message, cwd = process.cwd()) {
-  git(["commit", "-m", message], { cwd });
+export function gitCommit(message, cwd = process.cwd(), options = {}) {
+  configureGitIdentity(cwd, options);
+  git(["commit", "-m", message], { cwd, env: options.env });
+}
+
+export function configureGitIdentity(cwd = process.cwd(), options = {}) {
+  git(["config", "user.name", "github-actions[bot]"], { cwd, env: options.env });
+  git(["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"], {
+    cwd,
+    env: options.env
+  });
 }
 
 export function gitPush(cwd = process.cwd()) {

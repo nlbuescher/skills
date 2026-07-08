@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { git, gitDiffCachedQuiet, gitHasPathChanges, gitOutput, gitStatusShort } from "../lib/git.mjs";
+import {
+  git,
+  gitCommit,
+  gitDiffCachedQuiet,
+  gitHasPathChanges,
+  gitOutput,
+  gitStatusShort
+} from "../lib/git.mjs";
 
 test("gitOutput returns stdout without trailing newline", () => {
   assert.equal(gitOutput(["--version"]).startsWith("git version "), true);
@@ -32,4 +39,27 @@ test("gitStatusShort reports untracked path-scoped changes", async () => {
   await writeFile(path.join(dir, "new.txt"), "new\n");
   assert.equal(gitStatusShort("new.txt", dir), "?? new.txt");
   assert.equal(gitHasPathChanges("new.txt", dir), true);
+});
+
+test("gitCommit configures bot identity in isolated repo", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "git-helper-commit-"));
+  const isolatedHome = path.join(dir, "home");
+  const isolatedConfig = path.join(dir, "config");
+
+  git(["init"], { cwd: dir });
+  await mkdir(isolatedHome, { recursive: true });
+  await mkdir(isolatedConfig, { recursive: true });
+  await writeFile(path.join(dir, "new.txt"), "new\n");
+  git(["add", "--all"], { cwd: dir });
+
+  gitCommit("ci: isolated commit", dir, {
+    env: {
+      HOME: isolatedHome,
+      XDG_CONFIG_HOME: isolatedHome,
+      GIT_CONFIG_GLOBAL: isolatedConfig,
+      GIT_CONFIG_NOSYSTEM: "1"
+    }
+  });
+
+  assert.equal(gitOutput(["log", "-1", "--format=%an <%ae>"], { cwd: dir }), "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>");
 });
