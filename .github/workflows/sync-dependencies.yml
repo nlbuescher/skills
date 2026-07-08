@@ -7,7 +7,7 @@ on:
   push:
     paths:
       - skills.json
-      - .github/actions/sync-dependency/**
+      - .github/actions/sync-dependencies/**
       - .github/scripts/**
       - .github/workflows/sync-dependencies.yml
 
@@ -21,4 +21,4 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Sync dependencies
-        uses: ./.github/actions/sync-dependency
+        uses: ./.github/actions/sync-dependencies

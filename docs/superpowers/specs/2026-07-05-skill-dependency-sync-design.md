@@ -2,7 +2,7 @@
 
 ## Goal
 
-Replace the per-dependency workflow configuration with one repository-level `skills.json` file. The sync workflow reads that file, syncs all declared upstream skill dependencies, regenerates the Claude plugin marketplace, and commits any resulting repository changes in one grouped commit.
+Replace the per-dependency workflow configuration with one repository-level `skills.json` file. The sync workflow reads that file, syncs all declared upstream skill dependencies, and commits any resulting dependency changes in one grouped commit. That push then triggers the marketplace workflow when the synced dependency files changed.
 
 The generated marketplace supports manually authored skills in category folders. The `skills.json` file is input only and must not be modified by sync or marketplace logic.
 
@@ -78,10 +78,9 @@ Flow:
    - delete the target directory,
    - copy all declared mappings into the target,
    - write `.upstream.yml`.
-5. Regenerate `.claude-plugin/marketplace.json`.
-6. Run `git add --all`.
-7. If there is no staged diff, exit without committing.
-8. Otherwise commit and push.
+5. Run `git add --all`.
+6. If there is no staged diff, exit without committing.
+7. Otherwise commit and push.
 
 The sync script never writes `skills.json`.
 
@@ -112,7 +111,7 @@ Rules:
 - add/update entries include the resolved ref.
 - remove entries do not include a ref.
 
-Marketplace changes are included in the same grouped commit because they are derived from the resulting skill tree.
+Marketplace changes are intentionally not included in the dependency sync commit. Sync pushes that change `skills/**` trigger the standalone marketplace workflow, which regenerates marketplace metadata in a follow-up commit only when the generated marketplace file changes.
 
 ## Marketplace Generation
 
@@ -154,7 +153,7 @@ Example output shape:
 
 ## Standalone Marketplace Workflow
 
-A separate marketplace workflow handles manual custom skill changes.
+A separate marketplace workflow handles dependency sync pushes and manual custom skill changes.
 
 Trigger paths:
 
@@ -172,7 +171,7 @@ The marketplace updater:
 5. writes the file only when output changes,
 6. commits only when there is a repository diff.
 
-The standalone marketplace workflow skips pushes from `github-actions[bot]` so sync commits do not create a second marketplace-only commit.
+The standalone marketplace workflow also runs for pushes from `github-actions[bot]`, so dependency sync commits can trigger marketplace regeneration.
 
 ## Testing
 
@@ -189,4 +188,4 @@ Tests cover:
 - marketplace output is stable,
 - marketplace updater no-ops when generated output matches existing file.
 
-Workflow verification uses `act` for local GitHub Actions execution. Runs are expected to fail at `git push`; verification passes when all sync and marketplace logic completes correctly before that push failure.
+Workflow verification uses `act` for local GitHub Actions execution. Runs are expected to fail at `git push`; verification passes when the selected workflow logic completes correctly before that push failure.

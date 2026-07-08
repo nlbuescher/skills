@@ -70,6 +70,36 @@ test("syncDependencies deletes target before copy and writes upstream source", a
   );
 });
 
+test("syncDependencies leaves marketplace generation to the marketplace workflow", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "sync-no-marketplace-root-"));
+  const source = await makeSourceRepo("sync-no-marketplace");
+  await writeFile(
+    path.join(root, "skills.json"),
+    JSON.stringify({
+      dependencies: [
+        {
+          source: "local/demo",
+          repository: source,
+          target: "skills/demo",
+          mappings: ["skills/*:."]
+        }
+      ]
+    })
+  );
+  git(["init"], { cwd: root });
+  git(["config", "user.name", "Test"], { cwd: root });
+  git(["config", "user.email", "test@example.com"], { cwd: root });
+  git(["add", "--all"], { cwd: root });
+  git(["commit", "-m", "baseline"], { cwd: root });
+
+  await syncDependencies({ rootDir: root, push: false, commit: false });
+
+  await assert.rejects(
+    readFile(path.join(root, ".claude-plugin", "marketplace.json"), "utf8"),
+    /ENOENT/
+  );
+});
+
 test("syncDependencies removes legacy upstream tracked only by repository url", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "sync-legacy-root-"));
   await mkdir(path.join(root, "skills", "old"), { recursive: true });

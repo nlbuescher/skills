@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build JS-based dependency sync and marketplace generation driven by root `skills.json`.
+**Goal:** Build JS-based dependency sync and marketplace generation driven by root `skills.json`, with marketplace regeneration handled by its own workflow after skill-tree pushes.
 
 **Architecture:** Add small focused Node ESM modules under `.github/scripts/lib/`, with CLI entrypoints for sync and marketplace update. Shared git helpers wrap `child_process` once, while tests use Node's built-in `node:test` runner and temporary fixture repos.
 
@@ -21,7 +21,8 @@
 - Flat skills such as `skills/grill-me/SKILL.md` are omitted from marketplace entries.
 - Sync commits use subject `ci: sync dependencies` and body lines `- add <owner/repo> (<ref>)`, `- update <owner/repo> (<ref>)`, or `- remove <owner/repo>`.
 - Sync uses `git add --all`.
-- Workflow verification uses `act`; failure at `git push` is acceptable after sync and marketplace logic completes.
+- Sync does not generate `.claude-plugin/marketplace.json`; dependency sync pushes trigger the marketplace workflow through `skills/**` path filters.
+- Workflow verification uses `act`; failure at `git push` is acceptable after the selected workflow logic completes.
 
 ---
 
@@ -35,7 +36,7 @@
 - Create `.github/scripts/update-marketplace.mjs`: marketplace-only CLI.
 - Create `.github/scripts/sync-dependencies.mjs`: sync CLI.
 - Create tests under `.github/scripts/test/*.test.mjs`.
-- Modify `.github/actions/sync-dependency/action.yml`: replace per-dependency inputs with one sync CLI call.
+- Modify `.github/actions/sync-dependencies/action.yml`: replace per-dependency inputs with one sync CLI call.
 - Delete `.github/actions/sync-dependency/sync-dependency.sh`: bash core logic removed.
 - Add `.github/actions/update-marketplace/action.yml`: marketplace-only composite action.
 - Modify `.github/workflows/sync-dependencies.yml`: call unified sync action and trigger on `skills.json`.
@@ -506,7 +507,7 @@ git commit -m "feat: generate claude plugin marketplace"
 - Test: `.github/scripts/test/sync-dependencies.test.mjs`
 
 **Interfaces:**
-- Consumes: `readSkillsManifest`, `writeMarketplaceIfChanged`, git helper functions.
+- Consumes: `readSkillsManifest` and git helper functions.
 - Produces: `syncDependencies(options): Promise<SyncResult>`
 - Produces: `buildCommitMessage(changes: DependencyChange[]): string`
 
@@ -599,7 +600,6 @@ import path from "node:path";
 import { globSync } from "node:fs";
 import { git, gitAddAll, gitCommit, gitDiffCachedQuiet, gitHasPathChanges, gitOutput, gitPush } from "./git.mjs";
 import { readSkillsManifest } from "./skills-manifest.mjs";
-import { writeMarketplaceIfChanged } from "./marketplace.mjs";
 
 export async function syncDependencies(options = {}) {
   const rootDir = options.rootDir ?? process.cwd();
@@ -641,8 +641,6 @@ export async function syncDependencies(options = {}) {
       changes.push({ action: existed ? "update" : "add", source: dependency.source, ref: ref || commit });
     }
   }
-
-  await writeMarketplaceIfChanged(rootDir);
 
   if (options.commit !== false) {
     gitAddAll(rootDir);
@@ -772,7 +770,7 @@ git commit -m "feat: sync dependencies from skills manifest"
 ## Task 4: Actions, Workflows, and `act` Verification
 
 **Files:**
-- Modify: `.github/actions/sync-dependency/action.yml`
+- Modify: `.github/actions/sync-dependencies/action.yml`
 - Delete: `.github/actions/sync-dependency/sync-dependency.sh`
 - Create: `.github/actions/update-marketplace/action.yml`
 - Modify: `.github/workflows/sync-dependencies.yml`
@@ -784,11 +782,11 @@ git commit -m "feat: sync dependencies from skills manifest"
 
 - [ ] **Step 1: Replace sync action with JS CLI call**
 
-Modify `.github/actions/sync-dependency/action.yml`:
+Modify `.github/actions/sync-dependencies/action.yml`:
 
 ```yaml
 name: Sync dependencies
-description: Sync all skill dependencies declared in skills.json and regenerate marketplace metadata.
+description: Sync all skill dependencies declared in skills.json.
 runs:
   using: composite
   steps:
@@ -828,7 +826,7 @@ on:
   push:
     paths:
       - skills.json
-      - .github/actions/sync-dependency/**
+      - .github/actions/sync-dependencies/**
       - .github/scripts/**
       - .github/workflows/sync-dependencies.yml
 
@@ -864,7 +862,6 @@ on:
 
 jobs:
   update-marketplace:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -886,7 +883,7 @@ Expected: PASS.
 
 Run: `act workflow_dispatch -W .github/workflows/sync-dependencies.yml`
 
-Expected: sync and marketplace steps complete. If changes are committed locally inside the action container, run may fail at `git push`; that failure is acceptable only after commit/message generation succeeds.
+Expected: dependency sync steps complete. If changes are committed locally inside the action container, run may fail at `git push`; that failure is acceptable only after commit/message generation succeeds.
 
 - [ ] **Step 7: Run marketplace workflow with act**
 
@@ -930,10 +927,10 @@ Spec coverage:
 - delete target before copy: Task 3.
 - `.upstream.yml` source metadata: Task 3.
 - removed dependency detection from `.upstream.yml`: Task 3.
-- fully generated marketplace: Task 2.
+- fully generated marketplace: Task 2 and standalone workflow in Task 4.
 - custom category folder grouping and flat skill omission: Task 2.
 - grouped commit body with add/update/remove: Task 3.
-- standalone marketplace workflow: Task 4.
+- standalone marketplace workflow, including dependency sync push handling: Task 4.
 - `act` verification with expected push failure: Task 4.
 
 Placeholder scan: no placeholder markers or deferred-work steps.

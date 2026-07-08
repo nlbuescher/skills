@@ -11,7 +11,6 @@ import {
   gitOutput,
   gitPush
 } from "./git.mjs";
-import { writeMarketplaceIfChanged } from "./marketplace.mjs";
 import { readSkillsManifest } from "./skills-manifest.mjs";
 
 export async function syncDependencies(options = {}) {
@@ -59,8 +58,6 @@ export async function syncDependencies(options = {}) {
       });
     }
   }
-
-  await writeMarketplaceIfChanged(rootDir);
 
   if (options.commit !== false) {
     gitAddAll(rootDir);
