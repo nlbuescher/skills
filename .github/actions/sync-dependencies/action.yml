@@ -1,8 +1,0 @@
-name: Sync dependencies
-description: Sync all skill dependencies declared in skills.json.
-runs:
-  using: composite
-  steps:
-    - name: Sync dependencies
-      shell: bash
-      run: node .github/scripts/sync-dependencies.mjs

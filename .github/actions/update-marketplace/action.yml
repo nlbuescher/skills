@@ -1,8 +1,0 @@
-name: Update marketplace
-description: Regenerate .claude-plugin/marketplace.json from skills folders.
-runs:
-  using: composite
-  steps:
-    - name: Update marketplace
-      shell: bash
-      run: node .github/scripts/update-marketplace.mjs

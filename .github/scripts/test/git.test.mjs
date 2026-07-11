@@ -44,11 +44,10 @@ test("gitStatusShort reports untracked path-scoped changes", async () => {
 test("gitCommit configures bot identity in isolated repo", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "git-helper-commit-"));
   const isolatedHome = path.join(dir, "home");
-  const isolatedConfig = path.join(dir, "config");
+  const isolatedConfig = path.join(dir, "global.gitconfig");
 
   git(["init"], { cwd: dir });
   await mkdir(isolatedHome, { recursive: true });
-  await mkdir(isolatedConfig, { recursive: true });
   await writeFile(path.join(dir, "new.txt"), "new\n");
   git(["add", "--all"], { cwd: dir });
 

@@ -1,18 +1,18 @@
-name: Sync dependencies
+name: Sync Dependencies
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */12 * * *"
+    - cron: "0 3 * * *"
   push:
     paths:
       - skills.json
-      - .github/actions/sync-dependencies/**
       - .github/scripts/**
       - .github/workflows/sync-dependencies.yml
 
 jobs:
   sync-dependencies:
+    name: Sync Dependencies
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -20,5 +20,5 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v7
 
-      - name: Sync dependencies
-        uses: ./.github/actions/sync-dependencies
+      - name: Sync Dependencies
+        run: node .github/scripts/sync-dependencies.mjs

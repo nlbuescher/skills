@@ -4,7 +4,7 @@ import { gitAddAll, gitCommit, gitDiffCachedQuiet, gitPush } from "./lib/git.mjs
 
 const changed = await writeMarketplaceIfChanged(process.cwd());
 if (!changed) {
-  console.log("Marketplace already current.");
+  console.log("Marketplace already up-to-date.");
   process.exit(0);
 }
 
