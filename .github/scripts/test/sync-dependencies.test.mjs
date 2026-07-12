@@ -9,16 +9,16 @@ import { buildCommitMessage, syncDependencies } from "../lib/sync-dependencies.m
 
 async function makeSourceRepo(name) {
   const dir = await mkdtemp(path.join(tmpdir(), `${name}-source-`));
-  git(["init"], { cwd: dir });
-  git(["config", "user.name", "Test"], { cwd: dir });
-  git(["config", "user.email", "test@example.com"], { cwd: dir });
+  await git(["init"], { cwd: dir, print: false });
+  await git(["config", "user.name", "Test"], { cwd: dir, print: false });
+  await git(["config", "user.email", "test@example.com"], { cwd: dir, print: false });
   await mkdir(path.join(dir, "skills", "demo"), { recursive: true });
   await mkdir(path.join(dir, "agents"), { recursive: true });
   await writeFile(path.join(dir, "skills", "demo", "SKILL.md"), "---\nname: demo\ndescription: test\n---\n");
   await writeFile(path.join(dir, "agents", "helper.txt"), "helper\n");
   await writeFile(path.join(dir, "LICENSE"), "license\n");
-  git(["add", "--all"], { cwd: dir });
-  git(["commit", "-m", "initial"], { cwd: dir });
+  await git(["add", "--all"], { cwd: dir, print: false });
+  await git(["commit", "-m", "initial"], { cwd: dir, print: false });
   return dir;
 }
 
@@ -51,13 +51,13 @@ test("syncDependencies deletes target before copy and writes upstream source", a
       ]
     })
   );
-  git(["init"], { cwd: root });
-  git(["config", "user.name", "Test"], { cwd: root });
-  git(["config", "user.email", "test@example.com"], { cwd: root });
-  git(["add", "--all"], { cwd: root });
-  git(["commit", "-m", "baseline"], { cwd: root });
+  await git(["init"], { cwd: root, print: false });
+  await git(["config", "user.name", "Test"], { cwd: root, print: false });
+  await git(["config", "user.email", "test@example.com"], { cwd: root, print: false });
+  await git(["add", "--all"], { cwd: root, print: false });
+  await git(["commit", "-m", "baseline"], { cwd: root, print: false });
 
-  const result = await syncDependencies({ rootDir: root, push: false, commit: false });
+  const result = await syncDependencies({ rootDir: root, push: false, commit: false, print: false });
   const upstream = await readFile(path.join(root, "skills", "demo", ".upstream.yml"), "utf8");
 
   assert.equal(result.changes[0].action, "update");
@@ -86,13 +86,13 @@ test("syncDependencies leaves marketplace generation to the marketplace workflow
       ]
     })
   );
-  git(["init"], { cwd: root });
-  git(["config", "user.name", "Test"], { cwd: root });
-  git(["config", "user.email", "test@example.com"], { cwd: root });
-  git(["add", "--all"], { cwd: root });
-  git(["commit", "-m", "baseline"], { cwd: root });
+  await git(["init"], { cwd: root, print: false });
+  await git(["config", "user.name", "Test"], { cwd: root, print: false });
+  await git(["config", "user.email", "test@example.com"], { cwd: root, print: false });
+  await git(["add", "--all"], { cwd: root, print: false });
+  await git(["commit", "-m", "baseline"], { cwd: root, print: false });
 
-  await syncDependencies({ rootDir: root, push: false, commit: false });
+  await syncDependencies({ rootDir: root, push: false, commit: false, print: false });
 
   await assert.rejects(
     readFile(path.join(root, ".claude-plugin", "marketplace.json"), "utf8"),
@@ -109,13 +109,13 @@ test("syncDependencies removes legacy upstream tracked only by repository url", 
     "repository: https://github.com/owner/old\nref: abc1234\ncommit: abc1234\n"
   );
   await writeFile(path.join(root, "skills.json"), JSON.stringify({ dependencies: [] }));
-  git(["init"], { cwd: root });
-  git(["config", "user.name", "Test"], { cwd: root });
-  git(["config", "user.email", "test@example.com"], { cwd: root });
-  git(["add", "--all"], { cwd: root });
-  git(["commit", "-m", "baseline"], { cwd: root });
+  await git(["init"], { cwd: root, print: false });
+  await git(["config", "user.name", "Test"], { cwd: root, print: false });
+  await git(["config", "user.email", "test@example.com"], { cwd: root, print: false });
+  await git(["add", "--all"], { cwd: root, print: false });
+  await git(["commit", "-m", "baseline"], { cwd: root, print: false });
 
-  const result = await syncDependencies({ rootDir: root, push: false, commit: false });
+  const result = await syncDependencies({ rootDir: root, push: false, commit: false, print: false });
 
   await assert.rejects(readFile(path.join(root, "skills", "old", "old.txt"), "utf8"), /ENOENT/);
   assert.deepEqual(result.changes, [{ action: "remove", source: "owner/old" }]);

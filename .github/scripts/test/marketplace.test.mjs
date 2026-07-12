@@ -47,9 +47,9 @@ test("writeMarketplaceIfChanged writes only when normalized output changes", asy
   const root = await mkdtemp(path.join(tmpdir(), "marketplace-write-"));
   await skill(root, "skills/caveman/caveman", "caveman");
 
-  assert.equal(await writeMarketplaceIfChanged(root), true);
+  assert.equal(await writeMarketplaceIfChanged(root, { print: false }), true);
   const first = await readFile(path.join(root, ".claude-plugin/marketplace.json"), "utf8");
-  assert.equal(await writeMarketplaceIfChanged(root), false);
+  assert.equal(await writeMarketplaceIfChanged(root, { print: false }), false);
   const second = await readFile(path.join(root, ".claude-plugin/marketplace.json"), "utf8");
   assert.equal(second, first);
 });

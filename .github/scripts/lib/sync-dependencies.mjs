@@ -15,31 +15,39 @@ import { readSkillsManifest } from "./skills-manifest.mjs";
 
 export async function syncDependencies(options = {}) {
   const rootDir = options.rootDir ?? process.cwd();
+  const print = options.print ?? true;
   const manifest = await readSkillsManifest(path.join(rootDir, "skills.json"));
   const declaredSources = new Set(manifest.dependencies.map((dependency) => dependency.source));
   const changes = [];
 
   for (const upstream of await findExistingUpstreams(rootDir)) {
     if (!declaredSources.has(upstream.source)) {
+      report(`Removing ${path.relative(rootDir, upstream.targetDir)}`, print);
       await rm(upstream.targetDir, { recursive: true, force: true });
       changes.push({ action: "remove", source: upstream.source });
     }
   }
 
   for (const dependency of manifest.dependencies) {
+    report(`Syncing ${dependency.source}`, print);
     const targetDir = path.join(rootDir, dependency.target);
     const existed = await exists(targetDir);
-    const sourceRepoDir = await cloneDependency(dependency.repository);
-    const ref = checkoutRef(sourceRepoDir, dependency.useTags);
-    const commit = gitOutput(["rev-parse", "--short", "HEAD"], { cwd: sourceRepoDir });
+    const sourceRepoDir = await cloneDependency(dependency.repository, print);
+    const ref = await checkoutRef(sourceRepoDir, dependency.useTags, print);
+    const commit = await gitOutput(["rev-parse", "--short", "HEAD"], {
+      cwd: sourceRepoDir,
+      print
+    });
 
+    report(`Removing ${dependency.target}`, print);
     await rm(targetDir, { recursive: true, force: true });
     await mkdir(targetDir, { recursive: true });
 
     for (const mapping of dependency.mappings) {
-      await copyMapping(sourceRepoDir, mapping, targetDir);
+      await copyMapping(sourceRepoDir, mapping, targetDir, print);
     }
 
+    report(`Writing ${path.posix.join(dependency.target, ".upstream.yml")}`, print);
     await writeFile(
       path.join(targetDir, ".upstream.yml"),
       formatUpstream({
@@ -50,7 +58,7 @@ export async function syncDependencies(options = {}) {
       })
     );
 
-    if (gitHasPathChanges(dependency.target, rootDir)) {
+    if (await gitHasPathChanges(dependency.target, rootDir, { print })) {
       changes.push({
         action: existed ? "update" : "add",
         source: dependency.source,
@@ -60,11 +68,11 @@ export async function syncDependencies(options = {}) {
   }
 
   if (options.commit !== false) {
-    gitAddAll(rootDir);
-    if (!gitDiffCachedQuiet(rootDir)) {
-      gitCommit(buildCommitMessage(changes), rootDir);
+    await gitAddAll(rootDir, { print });
+    if (!(await gitDiffCachedQuiet(rootDir, { print }))) {
+      await gitCommit(buildCommitMessage(changes), rootDir, { print });
       if (options.push !== false) {
-        gitPush(rootDir);
+        await gitPush(rootDir, { print });
       }
     }
   }
@@ -89,32 +97,33 @@ export function buildCommitMessage(changes) {
   return lines.join("\n");
 }
 
-async function cloneDependency(repository) {
+async function cloneDependency(repository, print) {
   const dir = await mkdtemp(path.join(tmpdir(), "skill-dependency-"));
-  git(["clone", "--quiet", repository, dir]);
+  await git(["clone", "--quiet", repository, dir], { print });
   return dir;
 }
 
-function checkoutRef(repoDir, useTags) {
+async function checkoutRef(repoDir, useTags, print) {
   if (!useTags) {
-    return gitOutput(["rev-parse", "--short", "HEAD"], { cwd: repoDir });
+    return gitOutput(["rev-parse", "--short", "HEAD"], { cwd: repoDir, print });
   }
 
-  const tag = git(["describe", "--tags", "--first-parent", "--abbrev=0"], {
+  const tag = await git(["describe", "--tags", "--first-parent", "--abbrev=0"], {
     cwd: repoDir,
-    allowFailure: true
+    allowFailure: true,
+    print
   });
 
   if (tag.status !== 0) {
-    return gitOutput(["rev-parse", "--short", "HEAD"], { cwd: repoDir });
+    return gitOutput(["rev-parse", "--short", "HEAD"], { cwd: repoDir, print });
   }
 
   const ref = tag.stdout.trim();
-  git(["checkout", "--quiet", ref], { cwd: repoDir });
+  await git(["checkout", "--quiet", ref], { cwd: repoDir, print });
   return ref;
 }
 
-async function copyMapping(sourceRepoDir, mapping, targetDir) {
+async function copyMapping(sourceRepoDir, mapping, targetDir, print) {
   const matches = globSync(mapping.source, { cwd: sourceRepoDir }).sort();
 
   if (matches.length === 0) {
@@ -125,16 +134,25 @@ async function copyMapping(sourceRepoDir, mapping, targetDir) {
 
   if (matches.length === 1) {
     await mkdir(path.dirname(destination), { recursive: true });
+    report(`Copying ${matches[0]} to ${path.relative(sourceRepoDir, destination)}`, print);
     await cp(path.join(sourceRepoDir, matches[0]), destination, { recursive: true, force: true });
     return;
   }
 
   await mkdir(destination, { recursive: true });
   for (const match of matches) {
-    await cp(path.join(sourceRepoDir, match), path.join(destination, path.basename(match)), {
+    const output = path.join(destination, path.basename(match));
+    report(`Copying ${match} to ${path.relative(sourceRepoDir, output)}`, print);
+    await cp(path.join(sourceRepoDir, match), output, {
       recursive: true,
       force: true
     });
+  }
+}
+
+function report(message, print) {
+  if (print) {
+    console.log(message);
   }
 }
 

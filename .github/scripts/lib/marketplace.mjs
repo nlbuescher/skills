@@ -31,7 +31,8 @@ export async function buildMarketplace(rootDir = process.cwd()) {
   };
 }
 
-export async function writeMarketplaceIfChanged(rootDir = process.cwd()) {
+export async function writeMarketplaceIfChanged(rootDir = process.cwd(), options = {}) {
+  const print = options.print ?? true;
   const marketplace = await buildMarketplace(rootDir);
   const output = `${JSON.stringify(marketplace, null, 2)}\n`;
   const file = path.join(rootDir, ".claude-plugin", "marketplace.json");
@@ -41,9 +42,17 @@ export async function writeMarketplaceIfChanged(rootDir = process.cwd()) {
     return false;
   }
 
+  report("Generating marketplace", print);
   await mkdir(path.dirname(file), { recursive: true });
+  report("Writing .claude-plugin/marketplace.json", print);
   await writeFile(file, output);
   return true;
+}
+
+function report(message, print) {
+  if (print) {
+    console.log(message);
+  }
 }
 
 async function safeDirNames(dir) {
