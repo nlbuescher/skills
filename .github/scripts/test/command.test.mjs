@@ -46,6 +46,23 @@ test("runCommand forwards its command and streams when printing", async () => {
   assert.equal(stderr, "err");
 });
 
+test("runCommand suppresses its command and streams when printing is disabled", async () => {
+  const { stdout, stderr } = await execFileAsync(process.execPath, [
+    "--input-type=module",
+    "-e",
+    `import { runCommand } from ${JSON.stringify(commandModule)};
+     const result = await runCommand(
+       process.execPath,
+       ["-e", "process.stdout.write('out'); process.stderr.write('err')"],
+       { print: false }
+     );
+     process.stdout.write(JSON.stringify(result));`
+  ]);
+
+  assert.equal(stdout, '{"status":0,"stdout":"out","stderr":"err"}');
+  assert.equal(stderr, "");
+});
+
 test("printProgress prints one newline-terminated message only when enabled", async () => {
   const { stdout, stderr } = await execFileAsync(process.execPath, [
     "--input-type=module",
