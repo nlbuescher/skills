@@ -44,7 +44,7 @@ export async function syncDependencies(options = {}) {
     await mkdir(targetDir, { recursive: true });
 
     for (const mapping of dependency.mappings) {
-      await copyMapping(sourceRepoDir, mapping, targetDir, print);
+      await copyMapping(sourceRepoDir, mapping, targetDir, rootDir, print);
     }
 
     report(`Writing ${path.posix.join(dependency.target, ".upstream.yml")}`, print);
@@ -123,7 +123,7 @@ async function checkoutRef(repoDir, useTags, print) {
   return ref;
 }
 
-async function copyMapping(sourceRepoDir, mapping, targetDir, print) {
+async function copyMapping(sourceRepoDir, mapping, targetDir, rootDir, print) {
   const matches = globSync(mapping.source, { cwd: sourceRepoDir }).sort();
 
   if (matches.length === 0) {
@@ -134,7 +134,7 @@ async function copyMapping(sourceRepoDir, mapping, targetDir, print) {
 
   if (matches.length === 1) {
     await mkdir(path.dirname(destination), { recursive: true });
-    report(`Copying ${matches[0]} to ${path.relative(sourceRepoDir, destination)}`, print);
+    report(`Copying ${matches[0]} to ${path.relative(rootDir, destination)}`, print);
     await cp(path.join(sourceRepoDir, matches[0]), destination, { recursive: true, force: true });
     return;
   }
@@ -142,7 +142,7 @@ async function copyMapping(sourceRepoDir, mapping, targetDir, print) {
   await mkdir(destination, { recursive: true });
   for (const match of matches) {
     const output = path.join(destination, path.basename(match));
-    report(`Copying ${match} to ${path.relative(sourceRepoDir, output)}`, print);
+    report(`Copying ${match} to ${path.relative(rootDir, output)}`, print);
     await cp(path.join(sourceRepoDir, match), output, {
       recursive: true,
       force: true

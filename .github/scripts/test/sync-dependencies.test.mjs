@@ -70,6 +70,48 @@ test("syncDependencies deletes target before copy and writes upstream source", a
   );
 });
 
+test("syncDependencies reports copy destinations relative to the repository root", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "sync-progress-root-"));
+  const source = await makeSourceRepo("sync-progress");
+  const output = [];
+  const originalLog = console.log;
+  console.log = (message) => output.push(message);
+
+  try {
+    await writeFile(
+      path.join(root, "skills.json"),
+      JSON.stringify({
+        dependencies: [
+          {
+            source: "local/demo",
+            repository: source,
+            target: "skills/demo",
+            mappings: ["skills/*:.", "LICENSE:LICENSE", "agents:cavecrew/agents"]
+          }
+        ]
+      })
+    );
+    await git(["init"], { cwd: root, print: false });
+    await git(["config", "user.name", "Test"], { cwd: root, print: false });
+    await git(["config", "user.email", "test@example.com"], { cwd: root, print: false });
+    await git(["add", "--all"], { cwd: root, print: false });
+    await git(["commit", "-m", "baseline"], { cwd: root, print: false });
+
+    await syncDependencies({ rootDir: root, push: false, commit: false, print: true });
+  } finally {
+    console.log = originalLog;
+  }
+
+  assert.deepEqual(
+    output.filter((line) => line.startsWith("Copying ")),
+    [
+      "Copying skills/demo to skills/demo",
+      "Copying LICENSE to skills/demo/LICENSE",
+      "Copying agents to skills/demo/cavecrew/agents"
+    ]
+  );
+});
+
 test("syncDependencies leaves marketplace generation to the marketplace workflow", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "sync-no-marketplace-root-"));
   const source = await makeSourceRepo("sync-no-marketplace");
