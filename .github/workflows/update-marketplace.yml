@@ -1,0 +1,23 @@
+name: Update Marketplace
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - skills/**
+      - skills.json
+      - .github/scripts/**
+      - .github/workflows/update-marketplace.yml
+
+jobs:
+  update-marketplace:
+    name: Update Marketplace
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v7
+
+      - name: Update Marketplace
+        run: node .github/scripts/update-marketplace.mjs

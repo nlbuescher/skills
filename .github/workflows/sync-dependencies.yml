@@ -1,15 +1,19 @@
-name: Sync dependencies
+name: Sync Dependencies
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */12 * * *"
+    - timezone: "Europe/Berlin"
+      cron: "0 3 * * *"
   push:
     paths:
+      - skills.json
+      - .github/scripts/**
       - .github/workflows/sync-dependencies.yml
 
 jobs:
   sync-dependencies:
+    name: Sync Dependencies
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -17,25 +21,5 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v7
 
-      - name: Sync caveman
-        uses: ./.github/actions/sync-dependency
-        with:
-          source-repo-url: https://github.com/JuliusBrussee/caveman
-          source-slug: JuliusBrussee/caveman
-          target-dir: skills/caveman
-          use-tags: false
-          mappings: |
-            skills/*:.
-            LICENSE:LICENSE
-            agents:cavecrew/agents
-
-      - name: Sync superpowers
-        uses: ./.github/actions/sync-dependency
-        with:
-          source-repo-url: https://github.com/obra/superpowers
-          source-slug: obra/superpowers
-          target-dir: skills/superpowers
-          use-tags: false
-          mappings: |
-            skills/*:.
-            LICENSE:LICENSE
+      - name: Sync Dependencies
+        run: node .github/scripts/sync-dependencies.mjs
