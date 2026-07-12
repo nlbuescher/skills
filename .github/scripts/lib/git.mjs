@@ -1,64 +1,50 @@
-import { spawnSync } from "node:child_process";
+import { runCommand } from "./command.mjs";
 
-export function git(args, options = {}) {
-  const result = spawnSync("git", args, {
-    cwd: options.cwd,
-    encoding: "utf8",
-    env: options.env ? { ...process.env, ...options.env } : process.env,
-    stdio: ["ignore", "pipe", "pipe"]
+export async function git(args, options = {}) {
+  return runCommand("git", args, {
+    ...options,
+    env: options.env ? { ...process.env, ...options.env } : process.env
   });
-
-  const output = {
-    status: result.status ?? 1,
-    stdout: result.stdout ?? "",
-    stderr: result.stderr ?? ""
-  };
-
-  if (!options.allowFailure && output.status !== 0) {
-    throw new Error(`git ${args.join(" ")} failed\n${output.stderr}`);
-  }
-
-  return output;
 }
 
-export function gitOutput(args, options = {}) {
-  return git(args, options).stdout.trimEnd();
+export async function gitOutput(args, options = {}) {
+  return (await git(args, options)).stdout.trimEnd();
 }
 
-export function gitAddAll(cwd = process.cwd()) {
-  git(["add", "--all"], { cwd });
+export async function gitAddAll(cwd = process.cwd(), options = {}) {
+  await git(["add", "--all"], { ...options, cwd });
 }
 
-export function gitDiffCachedQuiet(cwd = process.cwd()) {
-  const result = git(["diff", "--cached", "--quiet"], { cwd, allowFailure: true });
+export async function gitDiffCachedQuiet(cwd = process.cwd(), options = {}) {
+  const result = await git(["diff", "--cached", "--quiet"], { ...options, cwd, allowFailure: true });
   if (result.status === 0) return true;
   if (result.status === 1) return false;
   throw new Error(`git diff --cached --quiet failed\n${result.stderr}`);
 }
 
-export function gitCommit(message, cwd = process.cwd(), options = {}) {
-  configureGitIdentity(cwd, options);
-  git(["commit", "-m", message], { cwd, env: options.env });
+export async function gitCommit(message, cwd = process.cwd(), options = {}) {
+  await configureGitIdentity(cwd, options);
+  await git(["commit", "-m", message], { ...options, cwd });
 }
 
-export function configureGitIdentity(cwd = process.cwd(), options = {}) {
-  git(["config", "user.name", "github-actions[bot]"], { cwd, env: options.env });
-  git(["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"], {
-    cwd,
-    env: options.env
+export async function configureGitIdentity(cwd = process.cwd(), options = {}) {
+  await git(["config", "user.name", "github-actions[bot]"], { ...options, cwd });
+  await git(["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"], {
+    ...options,
+    cwd
   });
 }
 
-export function gitPush(cwd = process.cwd()) {
-  git(["push"], { cwd });
+export async function gitPush(cwd = process.cwd(), options = {}) {
+  await git(["push"], { ...options, cwd });
 }
 
-export function gitStatusShort(pathspec, cwd = process.cwd()) {
+export async function gitStatusShort(pathspec, cwd = process.cwd(), options = {}) {
   const args = ["status", "--short"];
   if (pathspec) args.push("--", pathspec);
-  return gitOutput(args, { cwd });
+  return gitOutput(args, { ...options, cwd });
 }
 
-export function gitHasPathChanges(pathspec, cwd = process.cwd()) {
-  return gitStatusShort(pathspec, cwd).length > 0;
+export async function gitHasPathChanges(pathspec, cwd = process.cwd(), options = {}) {
+  return (await gitStatusShort(pathspec, cwd, options)).length > 0;
 }

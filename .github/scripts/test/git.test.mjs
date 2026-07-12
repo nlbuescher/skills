@@ -12,33 +12,37 @@ import {
   gitStatusShort
 } from "../lib/git.mjs";
 
-test("gitOutput returns stdout without trailing newline", () => {
-  assert.equal(gitOutput(["--version"]).startsWith("git version "), true);
+const quiet = { print: false };
+
+test("gitOutput returns stdout without trailing newline", async () => {
+  assert.equal((await gitOutput(["--version"], quiet)).startsWith("git version "), true);
 });
 
-test("git reports failures without throwing when allowFailure is true", () => {
-  const result = git(["definitely-not-a-git-command"], { allowFailure: true });
+test("git reports failures without throwing when allowFailure is true", async () => {
+  const result = await git(["definitely-not-a-git-command"], { allowFailure: true, ...quiet });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /git:/);
 });
 
 test("gitDiffCachedQuiet returns true in empty repository", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "git-helper-"));
-  git(["init"], { cwd: dir });
-  assert.equal(gitDiffCachedQuiet(dir), true);
+  const init = git(["init"], { cwd: dir, ...quiet });
+  assert.equal(init instanceof Promise, true);
+  await init;
+  assert.equal(await gitDiffCachedQuiet(dir, quiet), true);
 });
 
 test("gitDiffCachedQuiet throws on unexpected failure", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "git-helper-bad-"));
-  assert.throws(() => gitDiffCachedQuiet(dir), /git diff --cached --quiet failed/);
+  await assert.rejects(gitDiffCachedQuiet(dir, quiet), /git diff --cached --quiet failed/);
 });
 
 test("gitStatusShort reports untracked path-scoped changes", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "git-helper-status-"));
-  git(["init"], { cwd: dir });
+  await git(["init"], { cwd: dir, ...quiet });
   await writeFile(path.join(dir, "new.txt"), "new\n");
-  assert.equal(gitStatusShort("new.txt", dir), "?? new.txt");
-  assert.equal(gitHasPathChanges("new.txt", dir), true);
+  assert.equal(await gitStatusShort("new.txt", dir, quiet), "?? new.txt");
+  assert.equal(await gitHasPathChanges("new.txt", dir, quiet), true);
 });
 
 test("gitCommit configures bot identity in isolated repo", async () => {
@@ -46,19 +50,20 @@ test("gitCommit configures bot identity in isolated repo", async () => {
   const isolatedHome = path.join(dir, "home");
   const isolatedConfig = path.join(dir, "global.gitconfig");
 
-  git(["init"], { cwd: dir });
+  await git(["init"], { cwd: dir, ...quiet });
   await mkdir(isolatedHome, { recursive: true });
   await writeFile(path.join(dir, "new.txt"), "new\n");
-  git(["add", "--all"], { cwd: dir });
+  await git(["add", "--all"], { cwd: dir, ...quiet });
 
-  gitCommit("ci: isolated commit", dir, {
+  await gitCommit("ci: isolated commit", dir, {
     env: {
       HOME: isolatedHome,
       XDG_CONFIG_HOME: isolatedHome,
       GIT_CONFIG_GLOBAL: isolatedConfig,
       GIT_CONFIG_NOSYSTEM: "1"
-    }
+    },
+    ...quiet
   });
 
-  assert.equal(gitOutput(["log", "-1", "--format=%an <%ae>"], { cwd: dir }), "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>");
+  assert.equal(await gitOutput(["log", "-1", "--format=%an <%ae>"], { cwd: dir, ...quiet }), "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>");
 });
