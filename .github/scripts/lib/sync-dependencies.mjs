@@ -105,7 +105,7 @@ async function cloneDependency(repository, print) {
 
 async function checkoutRef(repoDir, useTags, print) {
   if (!useTags) {
-    return gitOutput(["rev-parse", "--short", "HEAD"], { cwd: repoDir, print });
+    return await gitOutput(["rev-parse", "--short", "HEAD"], { cwd: repoDir, print });
   }
 
   const tag = await git(["describe", "--tags", "--first-parent", "--abbrev=0"], {
@@ -115,7 +115,7 @@ async function checkoutRef(repoDir, useTags, print) {
   });
 
   if (tag.status !== 0) {
-    return gitOutput(["rev-parse", "--short", "HEAD"], { cwd: repoDir, print });
+    return await gitOutput(["rev-parse", "--short", "HEAD"], { cwd: repoDir, print });
   }
 
   const ref = tag.stdout.trim();
